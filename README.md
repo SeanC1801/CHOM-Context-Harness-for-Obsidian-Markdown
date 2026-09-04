@@ -4,7 +4,25 @@
 
 ## Status
 
-**Planning and design phase.** The project proposal and one-page capstone brief are complete; the application has not yet been implemented. Commands, endpoints, and demo instructions will be added as each milestone is completed.
+**Walking skeleton.** `POST /sessions` persists a proposal to SQLite and returns one fixed question; `GET /sessions/{id}` reads it back. No question flow, weighting, comparison, or artifact generation yet — those land in later milestones.
+
+## Running it
+
+```bash
+python3 -m venv .venv
+./.venv/bin/pip install -r requirements.txt
+./.venv/bin/uvicorn app.main:app --reload
+```
+
+Then:
+
+```bash
+curl -X POST localhost:8000/sessions \
+  -H "Content-Type: application/json" \
+  -d '{"proposal": "A tool that reminds hackers to sleep"}'
+```
+
+The response includes a session `id` and the first question. `GET /sessions/{id}` returns the same session — data survives an app restart (`chom.db`, git-ignored).
 
 ## The problem
 
@@ -70,8 +88,8 @@ Project proposal
 
 | Concept | CHOM implementation |
 | --- | --- |
-| API endpoints | Create sessions, receive answers, request the next question, compare options, and export artifacts. |
-| Database | Persist proposal sessions, answers, weights, options, decisions, and artifact history. |
+| API endpoints | [app/main.py](app/main.py) — create sessions, receive answers, request the next question, compare options, and export artifacts. |
+| Database | [app/db.py](app/db.py) — SQLite persistence for proposal sessions, answers, weights, options, decisions, and artifact history. |
 | LLM integration | Generate one focused next question and reflective option notes through validated structured output. |
 | Caching logic | Reuse an unchanged generated question or assessment when the session state has not changed. |
 | Reporting | Create a PDF reflection report alongside Obsidian-compatible Markdown files. |
@@ -87,7 +105,7 @@ CHOM aims to help a participant turn an initial hackathon proposal into a user-r
 
 ## Planned build order
 
-1. Walking skeleton: create a proposal session, persist it, and return one question.
+1. ✅ Walking skeleton: create a proposal session, persist it, and return one question.
 2. Guided question flow and structured answer storage.
 3. Criteria weighting and deterministic option comparison.
 4. Markdown and PDF artifact generation.
