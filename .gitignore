@@ -3,6 +3,8 @@ __pycache__/
 .venv/
 venv/
 *.db
+*.db-journal
 .env
 .DS_Store
 .Rhistory
+Project/

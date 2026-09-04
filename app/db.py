@@ -54,6 +54,15 @@ def init_db() -> None:
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS question_cache (
+        state_hash TEXT PRIMARY KEY,
+        question TEXT NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
 
     conn.commit()
     conn.close()

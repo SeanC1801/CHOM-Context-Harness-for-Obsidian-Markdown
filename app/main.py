@@ -1,15 +1,18 @@
 import uuid
-from app.llm import generate_next_question, LLMError
+import pytest
+from app.llm import get_cached_or_generate, LLMError
 from fastapi import FastAPI, HTTPException
+from fastapi.testclient import TestClient
 from pydantic import BaseModel
-
+from pathlib import Path
+from app.report import build_report_data,render_markdown,render_pdf
 from app.db import get_connection, init_db
 
 app = FastAPI(title="CHOM")
+PROJECT_DIR = Path(__file__).resolve().parent.parent / "Project"
 
 class ProposalIn(BaseModel):
     proposal: str
-
 
 class SessionOut(BaseModel):
     id: str
@@ -50,6 +53,9 @@ class OptionalTotal(BaseModel):
 class ComparisonOut(BaseModel):
     options: list[OptionalTotal]
 
+class ExportOut(BaseModel):
+    markdown_path: str
+    pdf_path: str
 
 @app.on_event("startup")
 def on_startup() -> None:
@@ -61,21 +67,22 @@ def create_session(body: ProposalIn) -> SessionOut:
     if not body.proposal.strip():
         raise HTTPException(status_code=422, detail="proposal must not be empty")
 
-    session_id = str(uuid.uuid4())
-    try:
-        first_question = generate_next_question(body.proposal, [])
-    except LLMError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    try: 
+        session_id = str(uuid.uuid4())
+        conn = get_connection()
+        try:
+            first_question = get_cached_or_generate(conn, body.proposal, [])
+        except LLMError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
     
-    conn = get_connection()
-    conn.execute(
-        "INSERT INTO sessions (id, proposal, first_question) VALUES (?, ?, ?)",
-        (session_id, body.proposal, first_question),
-    )
-    conn.commit()
-    conn.close()
-
-    return SessionOut(id=session_id, proposal=body.proposal, first_question=first_question)
+        conn.execute(
+            "INSERT INTO sessions (id, proposal, first_question) VALUES (?, ?, ?)",
+            (session_id, body.proposal, first_question),
+        )
+        conn.commit()
+        return SessionOut(id=session_id, proposal=body.proposal, first_question=first_question)
+    finally:
+        conn.close()
 
 
 @app.get("/sessions/{session_id}", response_model=SessionOut)
@@ -127,7 +134,7 @@ def submit_answer(session_id: str, body: AnswerIn) -> AnswerOut:
             return AnswerOut(next_question=None, done=True)
 
         try: 
-            next_question = generate_next_question(session_row["proposal"], prior_answers)
+            next_question = get_cached_or_generate(conn, session_row["proposal"], prior_answers)
         except LLMError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
 
@@ -215,3 +222,42 @@ def compare_options(session_id: str) -> ComparisonOut:
     ]
 
     return ComparisonOut(options=options)
+
+
+# Exporting to markdown files
+@app.post("/sessions/{session_id}/export", response_model=ExportOut)
+def export_session(session_id: str) -> ExportOut:
+    conn = get_connection()
+    try:
+        session_row = conn.execute(
+            "SELECT id FROM sessions WHERE id = ?", (session_id,)
+        ).fetchone()
+        if session_row is None:
+            raise HTTPException(status_code=404, detail="session not found")
+
+        data = build_report_data(conn, session_id)
+    finally:
+        conn.close()
+
+    PROJECT_DIR.mkdir(exist_ok=True)
+
+    markdown_path = PROJECT_DIR / f"{session_id}.md"
+    markdown_path.write_text(render_markdown(data))
+
+    pdf_path = PROJECT_DIR / f"{session_id}.pdf"
+    render_pdf(data, str(pdf_path))
+
+    return ExportOut(markdown_path=str(markdown_path), pdf_path=str(pdf_path))
+
+@pytest.fixture
+def client(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.db.DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(
+        "app.main.get_cached_or_generate",
+        lambda conn, proposal, prior_answers: "Fake generated question?"
+    )
+
+    from app.main import app
+    with TestClient(app) as test_client:
+        yield test_client
+        

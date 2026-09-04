@@ -1,4 +1,5 @@
 import os
+import hashlib
 from dotenv import load_dotenv
 from google import genai
 
@@ -34,4 +35,26 @@ def generate_next_question(proposal: str, prior_answers: list[str]) -> str:
         raise LLMError("LLM returned a question that is too long")
     if not question.endswith("?"):
         raise LLMError("LLM response was not a single question")
+    return question
+
+def _hash_state(proposal: str, prior_answers: list[str]) -> str:
+    raw = proposal + "|" + "|".join(prior_answers)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+def get_cached_or_generate(conn, proposal: str, prior_answers: list[str]) -> str:
+    state_hash = _hash_state(proposal, prior_answers)
+
+    row = conn.execute(
+        "SELECT question FROM question_cache WHERE state_hash = ?", (state_hash,)
+    ).fetchone()
+
+    if row is not None:
+        return row["question"]
+
+    question = generate_next_question(proposal, prior_answers)
+
+    conn.execute(
+        "INSERT INTO question_cache (state_hash, question) VALUES (?,?)", (state_hash, question),
+    )
+    conn.commit()
     return question
