@@ -130,7 +130,7 @@ Hackathon participants often start with an interesting idea but lack a clear pro
 
 CHOM begins when a participant submits a project proposal in their own words. It then asks focused, bounded questions that help the participant examine assumptions, clarify constraints, identify trade-offs, and reflect on what matters most.
 
-CHOM does **not** give a definitive answer or select an architecture for the participant. It helps them compare a small number of options against criteria they have weighted themselves, then documents their approved decision in Obsidian-compatible Markdown and a concise PDF reflection report.
+CHOM does **not** give a definitive answer or select an architecture for the participant. It helps them compare a small number of options against criteria they have weighted themselves, then documents their approved decision in Obsidian-compatible Markdown and a concise PDF decision report.
 
 ```text
 Project proposal
@@ -138,7 +138,7 @@ Project proposal
   → participant reflections and criteria weights
   → transparent option comparison
   → participant selects a direction
-  → Markdown project folder + PDF reflection report
+  → Markdown project folder + PDF decision report
 ```
 
 ## Who it is for
@@ -146,15 +146,6 @@ Project proposal
 - Individual hackathon participants.
 - Small hackathon teams deciding what to build.
 - Students and early-stage builders who want a durable record of their project reasoning.
-
-## Version 1 scope
-
-1. Create and resume a proposal session.
-2. Save a participant's initial proposal and answers.
-3. Generate a bounded AI question flow about the problem, users, constraints, success criteria, and skills.
-4. Let the participant weight criteria and record pros and cons.
-5. Compare two or three options with transparent, deterministic scoring.
-6. Generate approved Markdown files in a `Project/` folder and a PDF reflection report.
 
 ## Non-negotiables
 
@@ -165,14 +156,14 @@ Project proposal
 - Scores must be traceable to participant-defined criteria and weights.
 - The application must remain simple to run locally.
 
-## Out of scope for v1
+## Out of scope
 
 - Building the participant's application.
 - Autonomous architecture selection or unrestricted agents.
 - Web scraping, RAG, vector databases, or third-party workflow automation.
 - Docker as a requirement, n8n, team collaboration features, or external syncing.
 
-## Planned technical approach
+## Technical approach
 
 - **API:** FastAPI
 - **Persistence:** SQLite
@@ -210,16 +201,8 @@ CHOM aims to help a participant turn an initial hackathon proposal into a user-r
 
 ## Project documents
 
-- [One-page capstone brief](CHOM_One_Pager.md)
-- [Project proposal](CHOM_Project_Proposal_v1.0.docx)
-
-## Planned build order
-
-1. ✅ Walking skeleton: create a proposal session, persist it, and return one question.
-2. ✅ Guided question flow and structured answer storage.
-3. ✅ Criteria weighting and deterministic option comparison.
-4. ✅ Markdown and PDF artifact generation.
-5. ✅ Caching, tests, and seeded demo data.
+- [Original planning draft](CHOM_One_Pager.md)
+- [Capstone overview document](My%2010x%20Solution%20-%20Sean%20Caling.md)
 
 ## Future ideas
 
