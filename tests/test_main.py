@@ -89,3 +89,46 @@ def test_comparison_computes_weighted_totals(client):
     options = {opt["option_name"]: opt["total_score"] for opt in resp.json()["options"]}
     assert options["Option A"] == 22
     assert options["Option B"] == 31
+
+def test_duplicate_score_updates_in_place(client):
+    session_id = client.post("/sessions", json={"proposal": "test"}).json()["id"]
+    criterion_id = client.post(
+        f"/sessions/{session_id}/criteria", json={"name": "cost", "weight": 3}
+    ).json()["id"]
+
+    first = client.post(
+        f"/sessions/{session_id}/options",
+        json={"option_name": "Option A", "criterion_id": criterion_id, "score": 4},
+    ).json()
+    second = client.post(
+        f"/sessions/{session_id}/options",
+        json={"option_name": "Option A", "criterion_id": criterion_id, "score": 2},
+    ).json()
+
+    assert first["id"] == second["id"]
+    assert second["score"] == 2
+
+    comparison = client.get(f"/sessions/{session_id}/comparison").json()
+    assert comparison["options"] == [{"option_name": "Option A", "total_score": 6}]
+
+def test_incomplete_option_excluded_from_comparison(client):
+    session_id = client.post("/sessions", json={"proposal": "test"}).json()["id"]
+    cost_id = client.post(
+        f"/sessions/{session_id}/criteria", json={"name": "cost", "weight": 3}
+    ).json()["id"]
+    speed_id = client.post(
+        f"/sessions/{session_id}/criteria", json={"name": "speed", "weight": 5}
+    ).json()["id"]
+
+    client.post(f"/sessions/{session_id}/options", json={"option_name": "Complete", "criterion_id": cost_id, "score": 1})
+    client.post(f"/sessions/{session_id}/options", json={"option_name": "Complete", "criterion_id": speed_id, "score": 1})
+    client.post(f"/sessions/{session_id}/options", json={"option_name": "Incomplete", "criterion_id": cost_id, "score": 5})
+
+    comparison = client.get(f"/sessions/{session_id}/comparison").json()
+    names = [opt["option_name"] for opt in comparison["options"]]
+    assert names == ["Complete"]
+
+def test_criterion_weight_out_of_range_rejected(client):
+    session_id = client.post("/sessions", json={"proposal": "test"}).json()["id"]
+    resp = client.post(f"/sessions/{session_id}/criteria", json={"name": "cost", "weight": 0})
+    assert resp.status_code == 422

@@ -1,8 +1,6 @@
 import uuid
-import pytest
 from app.llm import get_cached_or_generate, LLMError
 from fastapi import FastAPI, HTTPException
-from fastapi.testclient import TestClient
 from pydantic import BaseModel
 from pathlib import Path
 from app.report import build_report_data,render_markdown,render_pdf
@@ -150,6 +148,8 @@ def submit_answer(session_id: str, body: AnswerIn) -> AnswerOut:
 def add_criterion(session_id: str, body: CriterionIn) -> CriterionOut:
     if not body.name.strip():
         raise HTTPException(status_code=422, detail="name must not be empty")
+    if not 1 <= body.weight <= 5:
+        raise HTTPException(status_code=422, detail="weight must be between 1 and 5")
     
     conn = get_connection()
     try:
@@ -187,11 +187,22 @@ def add_option_score(session_id: str, body: OptionScoreIn) -> OptionScoreOut:
 
         score_id = str(uuid.uuid4())
         conn.execute(
-            "INSERT INTO option_scores (id, session_id, option_name, criterion_id, score) VALUES (?, ?, ?, ?, ?)",
+            """
+            INSERT INTO option_scores (id, session_id, option_name, criterion_id, score)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(session_id, option_name, criterion_id)
+            DO UPDATE SET score = excluded.score
+            """,
             (score_id, session_id, body.option_name, body.criterion_id, body.score),
         )
         conn.commit()
-        return OptionScoreOut(id=score_id, option_name=body.option_name, criterion_id=body.criterion_id, score=body.score)
+        # Return the stored score (it could be the new one or an existing one if it was updated)
+        row = conn.execute(
+            "SELECT id, score FROM option_scores WHERE session_id = ? AND option_name = ? AND criterion_id = ?",
+            (session_id, body.option_name, body.criterion_id),
+        ).fetchone()
+
+        return OptionScoreOut(id=row["id"], option_name=body.option_name, criterion_id=body.criterion_id, score=row["score"])
     finally:
         conn.close()
 
@@ -206,10 +217,13 @@ def compare_options(session_id: str) -> ComparisonOut:
             FROM option_scores
             JOIN criteria ON criteria.id = option_scores.criterion_id
             WHERE option_scores.session_id = ?
-            GROUP by option_scores.option_name
-            ORDER by total_score DESC
+            GROUP BY option_scores.option_name
+            HAVING COUNT(DISTINCT option_scores.criterion_id) = (
+                SELECT COUNT(*) FROM criteria WHERE criteria.session_id = ?
+            )
+            ORDER BY total_score DESC
             """,
-            (session_id,),
+            (session_id, session_id),
         ).fetchall()
     finally:
         conn.close()
@@ -248,16 +262,3 @@ def export_session(session_id: str) -> ExportOut:
     render_pdf(data, str(pdf_path))
 
     return ExportOut(markdown_path=str(markdown_path), pdf_path=str(pdf_path))
-
-@pytest.fixture
-def client(tmp_path, monkeypatch):
-    monkeypatch.setattr("app.db.DB_PATH", tmp_path / "test.db")
-    monkeypatch.setattr(
-        "app.main.get_cached_or_generate",
-        lambda conn, proposal, prior_answers: "Fake generated question?"
-    )
-
-    from app.main import app
-    with TestClient(app) as test_client:
-        yield test_client
-        

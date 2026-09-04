@@ -50,7 +50,8 @@ def init_db() -> None:
             session_id TEXT NOT NULL REFERENCES sessions(id),
             option_name TEXT NOT NULL,
             criterion_id TEXT NOT NULL REFERENCES criteria(id),
-            score INTEGER NOT NULL
+            score INTEGER NOT NULL,
+            UNIQUE(session_id, option_name, criterion_id)
         )
         """
     )
