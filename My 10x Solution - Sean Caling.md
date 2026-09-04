@@ -34,6 +34,6 @@ CHOM is an AI-guided deliberation tool, not an automatic project chooser. It ask
 2. Install dependencies: `python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt`
 3. Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey) and put it in a `.env` file as `GEMINI_API_KEY=your-key-here`.
 4. Start the server: `./.venv/bin/uvicorn app.main:app --reload`
-5. Run `./.venv/bin/python3 seed.py` to create a full demo session in one command (see the README's "Try it instantly with seed data" section), or follow the README's step-by-step walkthrough to try it manually.
+5. Run `./.venv/bin/python3 seed.py` to create a full demo session in one command (see the README's "5-minute demo path" section), or follow the README's step-by-step walkthrough to try it manually.
 
 Repo: https://github.com/SeanC1801/CHOM-Context-Harness-for-Obsidian-Markdown

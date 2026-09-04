@@ -8,24 +8,16 @@
 
 ## Setup
 
-**1. Install dependencies:**
-
-```bash
-python3 -m venv .venv
-./.venv/bin/pip install -r requirements.txt
-```
-
-**2. Get a free Gemini API key** from [Google AI Studio](https://aistudio.google.com/apikey) (no credit card required).
-
-**3. Create a `.env` file** in the project root with your key:
+**One-time config** (before the first run): get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey) (no credit card required), then create a `.env` file in the project root:
 
 ```
 GEMINI_API_KEY=your-key-here
 ```
 
-**4. Start the server:**
+**Then, two commands:**
 
 ```bash
+python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 ./.venv/bin/uvicorn app.main:app --reload
 ```
 
@@ -122,57 +114,6 @@ She exports the session. CHOM hands her a Markdown file and a PDF containing her
 
 Fifteen minutes have passed. She starts coding with a decision already made and written down, instead of still debating it an hour in.
 
-## The problem
-
-Hackathon participants often start with an interesting idea but lack a clear problem statement, scope, technical direction, or record of why a decision was made. Unstructured planning can consume hours and still produce a project that is too broad to finish.
-
-## What CHOM does
-
-CHOM begins when a participant submits a project proposal in their own words. It then asks focused, bounded questions that help the participant examine assumptions, clarify constraints, identify trade-offs, and reflect on what matters most.
-
-CHOM does **not** give a definitive answer or select an architecture for the participant. It helps them compare a small number of options against criteria they have weighted themselves, then documents their approved decision in Obsidian-compatible Markdown and a concise PDF decision report.
-
-```text
-Project proposal
-  → focused questions
-  → participant reflections and criteria weights
-  → transparent option comparison
-  → participant selects a direction
-  → Markdown project folder + PDF decision report
-```
-
-## Who it is for
-
-- Individual hackathon participants.
-- Small hackathon teams deciding what to build.
-- Students and early-stage builders who want a durable record of their project reasoning.
-
-## Non-negotiables
-
-- The participant makes the final decision.
-- The LLM has one narrow role: ask the next focused question and provide reflective option notes.
-- AI output must be validated before it is shown.
-- Final artifacts are based on user-confirmed answers and selections.
-- Scores must be traceable to participant-defined criteria and weights.
-- The application must remain simple to run locally.
-
-## Out of scope
-
-- Building the participant's application.
-- Autonomous architecture selection or unrestricted agents.
-- Web scraping, RAG, vector databases, or third-party workflow automation.
-- Docker as a requirement, n8n, team collaboration features, or external syncing.
-
-## Technical approach
-
-- **API:** FastAPI
-- **Persistence:** SQLite
-- **Validation:** Pydantic
-- **AI:** one LLM-provider adapter with structured responses
-- **Caching:** session-state hashes for unchanged questions or assessments
-- **Artifacts:** template-based Markdown plus PDF reporting
-- **Testing:** pytest with seeded demo sessions
-
 ## FlyRank capstone concepts
 
 | Concept | CHOM implementation |
@@ -194,10 +135,6 @@ Project proposal
 4. **Caching Logic**, makes CHOM remember conversations and relates them to direct LLM, so when you ask it a question it tries to check whether it has already generated an answer to exactly the same question so that it is able to reuse the idea.
 
 5. **Reporting**, CHOM takes everything that was saved in the database from: proposal, Q&A, option comparison, and turns them into 2 finished documents: Markdown file, and PDF written inside the Project/ folder.
-
-## 10x claim
-
-CHOM aims to help a participant turn an initial hackathon proposal into a user-refined, technically reasoned project brief in about **15 minutes**, rather than several hours of unstructured planning. This claim will be tested using the same sample idea in both workflows.
 
 ## Project documents
 
