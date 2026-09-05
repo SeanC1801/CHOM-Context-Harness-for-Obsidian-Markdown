@@ -154,7 +154,3 @@ The capstone core is a raw API. Every action is a `curl` command. That's intenti
 ## Security and data handling
 
 No secrets belong in the repository. API keys and configuration will be supplied through environment variables and excluded through `.gitignore`. Demo data will be seeded and will not use other people's personal data.
-
-## License
-
-License to be selected before public release.
